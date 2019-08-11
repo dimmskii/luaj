@@ -566,7 +566,7 @@ public class LuaClosure extends LuaFunction {
 				line = p.lineinfo != null && pc >= 0 && pc < p.lineinfo.length ? p.lineinfo[pc] : -1;
 			}
 		}
-		le.fileline = file + ":" + line;
+		le.fileline = file + ":" + (line >= 0? String.valueOf(line): "?") + ": ";
 		le.traceback = errorHook(le.getMessage(), le.level);
 	}
 	
