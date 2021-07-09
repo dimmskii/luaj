@@ -737,7 +737,7 @@ public class LuaValue extends Varargs {
 	 * @see #toString()
 	 * @see #TSTRING
 	 */
-	public String      optjstring(String defval)           { argerror("String");    return null;  }
+	public String      optjstring(String defval)           { argerror("string");    return null;  }
 
 	/** Check that optional argument is a string or number and return as {@link LuaString}
 	 * @param defval {@link LuaString} to return if {@code this} is nil or none
@@ -888,7 +888,7 @@ public class LuaValue extends Varargs {
 	 * @see #optint(int)
 	 * @see #TNUMBER
 	 */
-	public int         checkint()              { argerror("int");       return 0; }
+	public int         checkint()              { argerror("number");       return 0; }
 
 	/** Check that the value is numeric, and convert and cast value to int, or throw {@link LuaError} if not numeric
 	 * <p>
