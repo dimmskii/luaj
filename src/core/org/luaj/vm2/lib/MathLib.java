@@ -220,7 +220,7 @@ public class MathLib extends TwoArgFunction {
 		public Varargs invoke(Varargs args) {
 			LuaValue n = args.arg1();
 			/* number is its own integer part, no fractional part */
-			if (n.islong()) return varargsOf(n, valueOf(0.0));
+			if (n.islong()) return varargsOf(n.tonumber(), valueOf(0.0));
 			double x = n.checkdouble();
 			/* integer part (rounds toward zero) */
 			double intPart = ( x > 0 ) ? Math.floor( x ) : Math.ceil( x );
