@@ -891,6 +891,8 @@ public class LuaString extends LuaValue {
 		long x = 0;
 		boolean neg = (m_bytes[start] == '-');
 		int i = (neg || m_bytes[start] == '+')? start+1: start;
+		if ( i >= end )
+			return Double.NaN;
 		for ( ; i<end; i++ ) {
 			int digit = m_bytes[i] - (base<=10||(m_bytes[i]>='0'&&m_bytes[i]<='9')? '0':
 					m_bytes[i]>='A'&&m_bytes[i]<='Z'? ('A'-10): ('a'-10));
