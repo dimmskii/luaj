@@ -495,7 +495,7 @@ public class FuncState extends Constants {
 		if ( r instanceof LuaDouble ) {
 			double d = r.todouble();
 			int i = (int) d;
-			if ( d == (double) i )
+			if ( d == (double) i && (i != 0 || Double.doubleToLongBits(d) >= 0) )
 				r = LuaInteger.valueOf(i);
 		}
 		return this.addk(r);

@@ -83,7 +83,7 @@ public class LuaDouble extends LuaNumber {
 
 	public static LuaNumber valueOf(double d) {
 		int id = (int) d;
-		return d==id? (LuaNumber) LuaInteger.valueOf(id): (LuaNumber) new LuaDouble(d);
+		return d==id && (id != 0 || Double.doubleToLongBits(d) >= 0)? (LuaNumber) LuaInteger.valueOf(id): (LuaNumber) new LuaDouble(d);
 	}
 	
 	/** Don't allow ints to be boxed by DoubleValues  */
