@@ -497,88 +497,93 @@ public class LexState extends Constants {
 		return (hexvalue(c1) << 4) + hexvalue(c2);
 	}
 
-	void read_string(int del, SemInfo seminfo) {
-		save_and_next();
-		while (current != del) {
-			switch (current) {
-			case EOZ:
-				lexerror("unfinished string", TK_EOF);
-				continue; /* to avoid warnings */
-			case '\n':
-			case '\r':
-				lexerror("unfinished string", TK_STRING);
-				continue; /* to avoid warnings */
-			case '\\': {
-				int c;
-				nextChar(); /* do not save the `\' */
-				switch (current) {
-				case 'a': /* bell */
-					c = '\u0007';
-					break;
-				case 'b': /* backspace */
-					c = '\b';
-					break;
-				case 'f': /* form feed */
-					c = '\f';
-					break;
-				case 'n': /* newline */
-					c = '\n';
-					break;
-				case 'r': /* carriage return */
-					c = '\r';
-					break;
-				case 't': /* tab */
-					c = '\t';
-					break;
-				case 'v': /* vertical tab */
-					c = '\u000B';
-					break;
-				case 'x':
-					c = readhexaesc();
-					break;
-				case '\n': /* go through */
-				case '\r':
-					save('\n');
-					inclinenumber();
-					continue;
-				case EOZ:
-					continue; /* will raise an error next loop */
-		        case 'z': {  /* zap following span of spaces */
-		              nextChar();  /* skip the 'z' */
-		              while (isspace(current)) {
-		            	  if (currIsNewline()) inclinenumber();
-		            	  else nextChar();
-		              }
-		              continue;
-		        }
-				default: {
-					if (!isdigit(current))
-						save_and_next(); /* handles \\, \", \', and \? */
-					else { /* \xxx */
-						int i = 0;
-						c = 0;
-						do {
-							c = 10 * c + (current - '0');
-							nextChar();
-						} while (++i < 3 && isdigit(current));
-						if (c > UCHAR_MAX)
-							lexerror("escape sequence too large", TK_STRING);
-						save(c);
-					}
-					continue;
-				}
-				}
-				save(c);
-				nextChar();
-				continue;
-			}
-			default:
-				save_and_next();
-			}
-		}
-		save_and_next(); /* skip delimiter */
-		seminfo.ts = L.newTString(LuaString.valueOf(buff, 1, nbuff-2));
-	}
+    void read_string(int del, SemInfo seminfo) {
+        save_and_next();
+        while (current != del) {
+            switch (current) {
+            case EOZ:
+                lexerror("unfinished string", TK_EOF);
+                continue;
+            case '\n':
+            case '\r':
+                lexerror("unfinished string", TK_STRING);
+                continue;
+            case '\\': {
+                int c;
+                nextChar(); /* do not save the `\' */
+                switch (current) {
+                case 'a': /* bell */
+                    c = '\u0007';
+                    break;
+                case 'b': /* backspace */
+                    c = '\b';
+                    break;
+                case 'f': /* form feed */
+                    c = '\f';
+                    break;
+                case 'n': /* newline */
+                    c = '\n';
+                    break;
+                case 'r': /* carriage return */
+                    c = '\r';
+                    break;
+                case 't': /* tab */
+                    c = '\t';
+                    break;
+                case 'v': /* vertical tab */
+                    c = '\u000B';
+                    break;
+                case 'x':
+                    c = readhexaesc();
+                    break;
+                case '\n': /* go through */
+                case '\r':
+                    save('\n');
+                    inclinenumber();
+                    continue;
+                case EOZ:
+                    continue;
+                case 'z': { /* zap following span of spaces */
+                    nextChar(); /* skip the 'z' */
+                    while (isspace(current)) {
+                        if (currIsNewline()) inclinenumber();
+                        else nextChar();
+                    }
+                    continue;
+                }
+                default: {
+                    // escape sequence
+                    if (current == '\\' || current == '"' || current == '\'') {
+                        c = current;
+                    } else if (isdigit(current)) { /* \xxx */
+                        int i = 0;
+                        c = 0;
+                        do {
+                            c = 10 * c + (current - '0');
+                            nextChar();
+                        } while (++i < 3 && isdigit(current));
+                        if (c > UCHAR_MAX)
+                            lexerror("escape sequence too large", TK_STRING);
+                        save(c);
+                        continue;
+                    } else {
+                        lexerror("invalid escape sequence", TK_STRING);
+                        continue;
+                    }
+                    break;
+                }
+                }
+                save(c);
+                nextChar();
+                continue;
+                }
+            default:
+                save_and_next();
+            }
+        }
+        save_and_next(); /* skip delimiter */
+        seminfo.ts = L.newTString(LuaString.valueOf(buff, 1, nbuff-2));
+    }
 
 	int llex(SemInfo seminfo) {
 		nbuff = 0;
