@@ -97,10 +97,10 @@ class JavaConstructor extends JavaMember {
 			int score = CoerceLuaToJava.SCORE_UNCOERCIBLE;
 			for ( int i=0; i<constructors.length; i++ ) {
 				int s = constructors[i].score(args);
-				if ( s < score ) {
+				if ( constructors[i].isBetter(s, score, best) ) {
 					score = s;
 					best = constructors[i];
-					if ( score == 0 )
+					if ( score == 0 && best.varargs == null )
 						break;
 				}
 			}

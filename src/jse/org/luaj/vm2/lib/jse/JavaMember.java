@@ -21,6 +21,8 @@
 ******************************************************************************/
 package org.luaj.vm2.lib.jse;
 
+import java.lang.reflect.Array;
+
 import org.luaj.vm2.Varargs;
 import org.luaj.vm2.lib.VarArgFunction;
 import org.luaj.vm2.lib.jse.CoerceLuaToJava.Coercion;
@@ -45,18 +47,20 @@ class JavaMember extends VarArgFunction {
 
 	final Coercion[] fixedargs;
 	final Coercion varargs;
+	final Class varargsType;
 	
 	protected JavaMember(Class[] params, int modifiers) {
 		boolean isvarargs = ((modifiers & METHOD_MODIFIERS_VARARGS) != 0);
 		fixedargs = new CoerceLuaToJava.Coercion[isvarargs? params.length-1: params.length];
 		for ( int i=0; i<fixedargs.length; i++ )
 			fixedargs[i] = CoerceLuaToJava.getCoercion( params[i] );
-		varargs = isvarargs? CoerceLuaToJava.getCoercion( params[params.length-1].getComponentType() ): null;
+		varargsType = isvarargs? params[params.length-1].getComponentType(): null;
+		varargs = isvarargs? CoerceLuaToJava.getCoercion( varargsType ): null;
 	}
 	
 	int score(Varargs args) {
 		int n = args.narg();
-		int s = n>fixedargs.length? CoerceLuaToJava.SCORE_WRONG_TYPE * (n-fixedargs.length): 0;
+		int s = n>fixedargs.length && varargs == null? CoerceLuaToJava.SCORE_WRONG_TYPE * (n-fixedargs.length): 0;
 		for ( int j=0; j<fixedargs.length; j++ )
 			s += fixedargs[j].score( args.arg(j+1) );
 		if ( varargs != null )
@@ -75,13 +79,18 @@ class JavaMember extends VarArgFunction {
 			// should be the fixed arguments, followed by an array with the varargs
 			a = new Object[fixedargs.length+1];
 			int nvar = Math.max(0, args.narg()-fixedargs.length);
-			Object[] vararray = new Object[nvar];
+			Object vararray = Array.newInstance( varargsType, nvar );
 			for ( int i=0; i<fixedargs.length; i++ )
 				a[i] = fixedargs[i].coerce( args.arg(i+1) );
 			a[a.length-1] = vararray;
 			for ( int i=0; i<nvar; i++ )
-				vararray[i] = varargs.coerce( args.arg(fixedargs.length+i+1) );
+				Array.set( vararray, i, varargs.coerce( args.arg(fixedargs.length+i+1) ) );
 		}
 		return a;
+	}
+
+	/** Whether this member, with the given score, is a better match than the best so far: a lower score, or on a tie, fixed arguments over varargs, as in Java */
+	boolean isBetter(int score, int bestScore, JavaMember best) {
+		return score < bestScore || ( best != null && score == bestScore && best.varargs != null && varargs == null );
 	}
 }
