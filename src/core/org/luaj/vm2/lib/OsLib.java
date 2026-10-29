@@ -24,6 +24,7 @@ package org.luaj.vm2.lib;
 import java.io.IOException;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.TimeZone;
 
 import org.luaj.vm2.Buffer;
 import org.luaj.vm2.Globals;
@@ -149,9 +150,8 @@ public class OsLib extends TwoArgFunction {
 				case DATE: {
 					String s = args.optjstring(1, "%c");
 					double t = args.isnumber(2)? args.todouble(2): time(null);
-					if (s.equals("*t")) {
-						Calendar d = Calendar.getInstance();
-						d.setTime(new Date((long)(t*1000)));
+					if (s.equals("*t") || s.equals("!*t")) {
+						Calendar d = calendar(t, s.startsWith("!"));
 						LuaTable tbl = LuaValue.tableOf();
 						tbl.set("year", LuaValue.valueOf(d.get(Calendar.YEAR)));
 						tbl.set("month", LuaValue.valueOf(d.get(Calendar.MONTH)+1));
@@ -160,7 +160,7 @@ public class OsLib extends TwoArgFunction {
 						tbl.set("min", LuaValue.valueOf(d.get(Calendar.MINUTE)));
 						tbl.set("sec", LuaValue.valueOf(d.get(Calendar.SECOND)));
 						tbl.set("wday", LuaValue.valueOf(d.get(Calendar.DAY_OF_WEEK)));
-						tbl.set("yday", LuaValue.valueOf(d.get(0x6))); // Day of year
+						tbl.set("yday", LuaValue.valueOf(dayOfYear(d)+1));
 						tbl.set("isdst", LuaValue.valueOf(isDaylightSavingsTime(d)));
 						return tbl;
 					}
@@ -225,8 +225,8 @@ public class OsLib extends TwoArgFunction {
 	 * Otherwise, date formats the current time.
 	 * 
 	 * Date returns the date as a string,
-	 * formatted according to the same rules as ANSII strftime, but without
-	 * support for %g, %G, or %V.
+	 * formatted according to the same rules as the C99 strftime
+	 * in the C locale, with the conversions and modifiers that Lua 5.2 accepts.
 	 * 
 	 * When called without arguments, date returns a reasonable date and
 	 * time representation that depends on the host system and on the
@@ -238,13 +238,13 @@ public class OsLib extends TwoArgFunction {
 	 * formatted according to the given string format.
 	 */
 	public String date(String format, double time) {
-		Calendar d = Calendar.getInstance();
-		d.setTime(new Date((long)(time*1000)));
-		if (format.startsWith("!")) {
-			time -= timeZoneOffset(d);
-			d.setTime(new Date((long)(time*1000)));
+		boolean utc = format.startsWith("!");
+		if (utc)
 			format = format.substring(1);
-		}
+		return date(format, calendar(time, utc));
+	}
+
+	private String date(String format, Calendar d) {
 		byte[] fmt = format.getBytes();
 		final int n = fmt.length;
 		Buffer result = new Buffer(n);
@@ -258,73 +258,115 @@ public class OsLib extends TwoArgFunction {
 				result.append( c );
 				break;
 			case '%':
-				if (i >= n) break;
-				switch ( c = fmt[i++ ] ) {
+				final int conversion = i;
+				c = i < n? fmt[i++]: 0;
+				if ((c == 'E' && i < n && "cCxXyY".indexOf(fmt[i]) >= 0)
+						|| (c == 'O' && i < n && "deHImMSuUVwWy".indexOf(fmt[i]) >= 0))
+					c = fmt[i++]; // the C locale has no alternative representations
+				else if (c == 'E' || c == 'O')
+					c = 0;
+				int wday = d.get(Calendar.DAY_OF_WEEK)-1;
+				switch ( c ) {
 				default:
-					LuaValue.argerror(1, "invalid conversion specifier '%"+c+"'");
+					LuaValue.argerror(1, "invalid conversion specifier '%"+new String(fmt, conversion, n-conversion)+"'");
 					break;
 				case '%':
 					result.append( (byte)'%' );
 					break;
 				case 'a':
-					result.append(WeekdayNameAbbrev[d.get(Calendar.DAY_OF_WEEK)-1]);
+					result.append(WeekdayNameAbbrev[wday]);
 					break;
 				case 'A':
-					result.append(WeekdayName[d.get(Calendar.DAY_OF_WEEK)-1]);
+					result.append(WeekdayName[wday]);
 					break;
 				case 'b':
+				case 'h':
 					result.append(MonthNameAbbrev[d.get(Calendar.MONTH)]);
 					break;
 				case 'B':
 					result.append(MonthName[d.get(Calendar.MONTH)]);
 					break;
 				case 'c':
-					result.append(date("%a %b %d %H:%M:%S %Y", time));
+					result.append(date("%a %b %e %H:%M:%S %Y", d));
+					break;
+				case 'C':
+					result.append(String.valueOf(d.get(Calendar.YEAR)/100));
 					break;
 				case 'd':
 					result.append(String.valueOf(100+d.get(Calendar.DAY_OF_MONTH)).substring(1));
+					break;
+				case 'D':
+				case 'x':
+					result.append(date("%m/%d/%y", d));
+					break;
+				case 'e': {
+					int day = d.get(Calendar.DAY_OF_MONTH);
+					result.append((day < 10? " ": "") + day);
+					break;
+				}
+				case 'F':
+					result.append(date("%Y-%m-%d", d));
+					break;
+				case 'g':
+					result.append(String.valueOf(100+isoWeek(d)[0]%100).substring(1));
+					break;
+				case 'G':
+					result.append(String.valueOf(isoWeek(d)[0]));
 					break;
 				case 'H':
 					result.append(String.valueOf(100+d.get(Calendar.HOUR_OF_DAY)).substring(1));
 					break;
 				case 'I':
-					result.append(String.valueOf(100+(d.get(Calendar.HOUR_OF_DAY)%12)).substring(1));
+					result.append(String.valueOf(100+((d.get(Calendar.HOUR_OF_DAY)+11)%12+1)).substring(1));
 					break;
-				case 'j': { // day of year.
-					Calendar y0 = beginningOfYear(d);
-					int dayOfYear = (int) ((d.getTime().getTime() - y0.getTime().getTime()) / (24 * 3600L * 1000L));
-					result.append(String.valueOf(1001+dayOfYear).substring(1));
+				case 'j':
+					result.append(String.valueOf(1001+dayOfYear(d)).substring(1));
 					break;
-				}
 				case 'm':
 					result.append(String.valueOf(101+d.get(Calendar.MONTH)).substring(1));
 					break;
 				case 'M':
 					result.append(String.valueOf(100+d.get(Calendar.MINUTE)).substring(1));
 					break;
+				case 'n':
+					result.append( "\n" );
+					break;
 				case 'p':
 					result.append(d.get(Calendar.HOUR_OF_DAY) < 12? "AM": "PM");
+					break;
+				case 'r':
+					result.append(date("%I:%M:%S %p", d));
+					break;
+				case 'R':
+					result.append(date("%H:%M", d));
 					break;
 				case 'S':
 					result.append(String.valueOf(100+d.get(Calendar.SECOND)).substring(1));
 					break;
-				case 'U':
-					result.append(String.valueOf(weekNumber(d, 0)));
+				case 't':
+					result.append( "\t" );
+					break;
+				case 'T':
+				case 'X':
+					result.append(date("%H:%M:%S", d));
+					break;
+				case 'u':
+					result.append(String.valueOf((wday+6)%7+1));
+					break;
+				case 'U': // weeks start on Sunday, days before the first Sunday are in week 0
+					result.append(String.valueOf(100+(dayOfYear(d)+7-wday)/7).substring(1));
+					break;
+				case 'V':
+					result.append(String.valueOf(100+isoWeek(d)[1]).substring(1));
 					break;
 				case 'w':
-					result.append(String.valueOf((d.get(Calendar.DAY_OF_WEEK)+6)%7));
+					result.append(String.valueOf(wday));
 					break;
-				case 'W':
-					result.append(String.valueOf(weekNumber(d, 1)));
-					break;
-				case 'x':
-					result.append(date("%m/%d/%y", time));
-					break;
-				case 'X':
-					result.append(date("%H:%M:%S", time));
+				case 'W': // weeks start on Monday, days before the first Monday are in week 0
+					result.append(String.valueOf(100+(dayOfYear(d)+7-(wday+6)%7)/7).substring(1));
 					break;
 				case 'y':
-					result.append(String.valueOf(d.get(Calendar.YEAR)).substring(2));
+					result.append(String.valueOf(100+d.get(Calendar.YEAR)%100).substring(1));
 					break;
 				case 'Y':
 					result.append(String.valueOf(d.get(Calendar.YEAR)));
@@ -337,6 +379,9 @@ public class OsLib extends TwoArgFunction {
 					result.append((tzo>=0? "+": "-") + h + m);
 					break;
 				}
+				case 'Z':
+					result.append(timeZoneName(d));
+					break;
 				}
 			}
 		}
@@ -347,28 +392,55 @@ public class OsLib extends TwoArgFunction {
 	private static final String[] WeekdayName = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
 	private static final String[] MonthNameAbbrev = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 	private static final String[] MonthName = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" };
+	private static final int[] DaysBeforeMonth = { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 };
 
-	private Calendar beginningOfYear(Calendar d) {
-		Calendar y0 = Calendar.getInstance();
-		y0.setTime(d.getTime());
-		y0.set(Calendar.MONTH, 0);
-		y0.set(Calendar.DAY_OF_MONTH, 1);
-		y0.set(Calendar.HOUR_OF_DAY, 0);
-		y0.set(Calendar.MINUTE, 0);
-		y0.set(Calendar.SECOND, 0);
-		y0.set(Calendar.MILLISECOND, 0);
-		return y0;
+	/** The time, in seconds since the epoch, in the local time zone or in UTC */
+	private Calendar calendar(double time, boolean utc) {
+		Calendar d = utc? Calendar.getInstance(TimeZone.getTimeZone("GMT")): Calendar.getInstance();
+		d.setTime(new Date((long)time * 1000L));
+		return d;
 	}
-	
-	private int weekNumber(Calendar d, int startDay) {
-		Calendar y0 =  beginningOfYear(d);
-		y0.set(Calendar.DAY_OF_MONTH, 1 + (startDay + 8 - y0.get(Calendar.DAY_OF_WEEK)) % 7);
-		if (y0.after(d)) {
-			y0.set(Calendar.YEAR, y0.get(Calendar.YEAR) - 1);
-			y0.set(Calendar.DAY_OF_MONTH, 1 + (startDay + 8 - y0.get(Calendar.DAY_OF_WEEK)) % 7);
+
+	/** Day of the year, 0 for January 1st */
+	private static int dayOfYear(Calendar d) {
+		int month = d.get(Calendar.MONTH);
+		return DaysBeforeMonth[month] + (month > 1 && isLeapYear(d.get(Calendar.YEAR))? 1: 0) + d.get(Calendar.DAY_OF_MONTH) - 1;
+	}
+
+	private static boolean isLeapYear(int year) {
+		return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+	}
+
+	/** The ISO 8601 week-based year and week number (1 to 53): weeks start on Monday, week 1 has the year's first Thursday */
+	private static int[] isoWeek(Calendar d) {
+		int year = d.get(Calendar.YEAR);
+		int yday = dayOfYear(d);
+		int wday = d.get(Calendar.DAY_OF_WEEK)-1;
+		int days = isoWeekDays(yday, wday);
+		if (days < 0) {
+			year--;
+			days = isoWeekDays(yday + (isLeapYear(year)? 366: 365), wday);
+		} else {
+			int next = isoWeekDays(yday - (isLeapYear(year)? 366: 365), wday);
+			if (next >= 0) {
+				year++;
+				days = next;
+			}
 		}
-		long dt = d.getTime().getTime() - y0.getTime().getTime();
-		return 1 + (int) (dt / (7L * 24L * 3600L * 1000L));
+		return new int[] { year, days / 7 + 1 };
+	}
+
+	/** Days since the Monday that starts the year's first ISO week (negative before it) */
+	private static int isoWeekDays(int yday, int wday) {
+		return yday - (yday - wday + 4 + 378) % 7 + 3;
+	}
+
+	/**
+	 * The name of the time zone for {@code %Z}, its ID by default; JseOsLib returns the abbreviation, as in C.
+	 * @param d the date, in the time zone
+	 */
+	protected String timeZoneName(Calendar d) {
+		return d.getTimeZone().getID();
 	}
 	
 	private int timeZoneOffset(Calendar d) {
@@ -500,7 +572,7 @@ public class OsLib extends TwoArgFunction {
 			c.set(Calendar.MILLISECOND, 0);
 			d = c.getTime();
 		}
-		return d.getTime() / 1000.;
+		return d.getTime() / 1000;
 	}
 
 	/**

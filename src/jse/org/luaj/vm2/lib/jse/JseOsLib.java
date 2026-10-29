@@ -23,6 +23,9 @@ package org.luaj.vm2.lib.jse;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Calendar;
+import java.util.Locale;
+import java.util.TimeZone;
 
 import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaValue;
@@ -130,6 +133,11 @@ public class JseOsLib extends org.luaj.vm2.lib.OsLib {
 		} catch ( IOException ioe ) {
 			return super.tmpname();
 		}
+	}
+
+	protected String timeZoneName(Calendar d) {
+		TimeZone tz = d.getTimeZone();
+		return tz.getDisplayName(tz.inDaylightTime(d.getTime()), TimeZone.SHORT, Locale.US);
 	}
 	
 }
