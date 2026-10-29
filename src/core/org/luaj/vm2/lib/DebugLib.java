@@ -229,13 +229,16 @@ public class DebugLib extends TwoArgFunction {
 			LuaValue func = args.arg(a++);
 			int local = args.checkint(a);
 
-			if (func.isfunction())
-				return func.checkclosure().p.getlocalname(local, 0);
+			if (func.isfunction()) {
+				// the name of a parameter, Java functions have none
+				LuaString name = func.isclosure()? func.checkclosure().p.getlocalname(local, 0): null;
+				return name != null? name: NIL;
+			}
 
 			// find the stack info
 			DebugLib.CallFrame frame = callstack(thread).getCallFrame(func.checkint());
 			if (frame == null)
-				return argerror(a, "level out of range");
+				return argerror(a-1, "level out of range");
 			return frame.getLocal(local);
 		}
 	}
