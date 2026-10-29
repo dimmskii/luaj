@@ -90,11 +90,7 @@ public class JseMathLib extends org.luaj.vm2.lib.MathLib {
 
 	static final class acos extends UnaryOp { protected double call(double d) { return Math.acos(d); } }
 	static final class asin extends UnaryOp { protected double call(double d) { return Math.asin(d); } }
-	static final class atan extends TwoArgFunction { 
-		public LuaValue call(LuaValue x, LuaValue y) {
-			return valueOf(Math.atan2(x.checkdouble(), y.optdouble(1)));
-		} 
-	}
+	static final class atan extends UnaryOp { protected double call(double d) { return Math.atan(d); } }
 	static final class atan2 extends TwoArgFunction { 
 		public LuaValue call(LuaValue x, LuaValue y) {
 			return valueOf(Math.atan2(x.checkdouble(), y.checkdouble()));
