@@ -287,21 +287,6 @@ public class StringLib extends TwoArgFunction {
 										fdsc.precision = -1;
 										fdsc.zeroPad = false;
 										fdsc.format(result, valueOf(nprefix + bstr));
-									} else if ((fdsc.conversion == 'g' || fdsc.conversion == 'G') && fdsc.precision == -1) {
-										//TODO: This gives a slightly different format but is better than nothing
-										String nprefix = "";
-										if (j >= 0) {
-											if (fdsc.explicitPlus)
-												nprefix = "+";
-											else if (fdsc.space)
-												nprefix = " ";
-										}
-										String bstr = Double.toString(j);
-										if (fdsc.conversion == 'G')
-											bstr = bstr.toUpperCase();
-										else
-											bstr = bstr.toLowerCase();
-										fdsc.format(result, valueOf(nprefix + bstr));
 									} else
 										fdsc.format(result, args.checkdouble(arg));
 									break;
@@ -314,7 +299,7 @@ public class StringLib extends TwoArgFunction {
 								LuaValue h = argv.metatag(TOSTRING);
 								if ( ! h.isnil() ) {
 									LuaValue v = h.call(argv).tostring();
-									return !v.isnil() ? v : StringLib.valueOf("(null)");
+									s = !v.isnil() ? v.checkstring() : StringLib.valueOf("(null)"); // Lua 5.2 prints "(null)" for a non-string
 								} else {
 									LuaValue v = argv.tostring();
 									if ( ! v.isnil() ) {
@@ -541,7 +526,10 @@ public class StringLib extends TwoArgFunction {
 		}
 		
 		public void format(Buffer buf, double x) {
-			// TODO: Java does not support alternateForm with 'g'
+			if (conversion == 'g' || conversion == 'G') {
+				formatG(buf, x);
+				return;
+			}
 			String sFormat = "%";
 			if (leftAdjust)
 				sFormat += ("-");
@@ -561,6 +549,62 @@ public class StringLib extends TwoArgFunction {
 			buf.append( StringLib.this.format(sFormat, x) );
 		}
 		
+		/**
+		 * %g and %G as C's printf, which Lua uses (Java's %g differs): the precision is the number of significant
+		 * digits (default 6, at least 1); %e style if the exponent is below -4 or not below the precision, else %f
+		 * style; trailing zeros removed unless the # flag is given.
+		 */
+		private void formatG(Buffer buf, double x) {
+			int p = precision == -1? 6: precision == 0? 1: precision;
+			String e = StringLib.this.format("%." + (p - 1) + "e", x);
+			int ei = e.indexOf('e');
+			int exp = ei < 0? 0: Integer.parseInt(e.substring(ei + 1).replace("+", ""));
+			String body;
+			if (exp < -4 || exp >= p) {
+				String mantissa = ei < 0? e: e.substring(0, ei);
+				body = (alternateForm? mantissa: stripZeros(mantissa)) + (ei < 0? "": e.substring(ei));
+			} else {
+				String f = StringLib.this.format("%." + (p - 1 - exp) + "f", x);
+				body = alternateForm? f: stripZeros(f);
+			}
+			if (conversion == 'G')
+				body = body.toUpperCase();
+			String sign = "";
+			if (body.startsWith("-")) {
+				sign = "-";
+				body = body.substring(1);
+			} else if (explicitPlus) {
+				sign = "+";
+			} else if (space) {
+				sign = " ";
+			}
+			int fill = width - sign.length() - body.length();
+			if (leftAdjust) {
+				buf.append(sign);
+				buf.append(body);
+				pad(buf, ' ', fill);
+			} else if (zeroPad) {
+				buf.append(sign);
+				pad(buf, '0', fill);
+				buf.append(body);
+			} else {
+				pad(buf, ' ', fill);
+				buf.append(sign);
+				buf.append(body);
+			}
+		}
+
+		private String stripZeros(String s) {
+			if (s.indexOf('.') < 0)
+				return s;
+			int end = s.length();
+			while (s.charAt(end - 1) == '0')
+				end--;
+			if (s.charAt(end - 1) == '.')
+				end--;
+			return s.substring(0, end);
+		}
+
 		public void format(Buffer buf, LuaString s) {
 			int nullindex = s.indexOf( (byte)'\0', 0 );
 			if ( nullindex != -1 )
@@ -571,7 +615,7 @@ public class StringLib extends TwoArgFunction {
 			if (!leftAdjust)
 				pad(buf, zeroPad ? '0' : ' ', width - newLength);
 
-			buf.append(s);
+			buf.append(newLength < s.length() ? s.substring(0, newLength) : s);
 
 			if (leftAdjust)
 				pad(buf, ' ', width - newLength);
