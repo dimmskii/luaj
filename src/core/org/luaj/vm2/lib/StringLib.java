@@ -558,7 +558,8 @@ public class StringLib extends TwoArgFunction {
 			int p = precision == -1? 6: precision == 0? 1: precision;
 			String e = StringLib.this.format("%." + (p - 1) + "e", x);
 			int ei = e.indexOf('e');
-			int exp = ei < 0? 0: Integer.parseInt(e.substring(ei + 1).replace("+", ""));
+			String es = ei < 0? "0": e.substring(ei + 1);
+			int exp = Integer.parseInt(es.startsWith("+")? es.substring(1): es);
 			String body;
 			if (exp < -4 || exp >= p) {
 				String mantissa = ei < 0? e: e.substring(0, ei);
