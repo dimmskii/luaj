@@ -45,6 +45,7 @@ import org.apache.bcel.generic.InstructionConstants;
 import org.apache.bcel.generic.InstructionFactory;
 import org.apache.bcel.generic.InstructionHandle;
 import org.apache.bcel.generic.InstructionList;
+import org.apache.bcel.generic.LDC2_W;
 import org.apache.bcel.generic.LocalVariableGen;
 import org.apache.bcel.generic.MethodGen;
 import org.apache.bcel.generic.ObjectType;
@@ -705,7 +706,10 @@ public class JavaBuilder {
 		FieldGen fg = new FieldGen(Constants.ACC_STATIC | Constants.ACC_FINAL, 
 				TYPE_LUAVALUE, name, cp);
 		cg.addField(fg.getField());
-		init.append(new PUSH(cp, value));
+		if ( value == 0 && 1 / value < 0 ) // PUSH would give DCONST_0, which is +0.0
+			init.append(new LDC2_W(cp.addDouble(value)));
+		else
+			init.append(new PUSH(cp, value));
 		init.append(factory.createInvoke(STR_LUAVALUE, "valueOf",
 				TYPE_LUANUMBER, ARG_TYPES_DOUBLE, Constants.INVOKESTATIC));
 		init.append(factory.createPutStatic(classname, name, TYPE_LUAVALUE));			

@@ -163,7 +163,7 @@ public class LuaDouble extends LuaNumber {
 	 * @see #ddiv_d(double, double)
 	 */
 	public static LuaValue ddiv(double lhs, double rhs) {
-		return rhs!=0? valueOf( lhs / rhs ): lhs>0? POSINF: lhs==0? NAN: NEGINF;
+		return valueOf( lhs / rhs );
 	}
 	
 	/** Divide two double numbers according to lua math, and return a double result.
@@ -173,7 +173,7 @@ public class LuaDouble extends LuaNumber {
 	 * @see #ddiv(double, double)
 	 */
 	public static double ddiv_d(double lhs, double rhs) {
-		return rhs!=0? lhs / rhs: lhs>0? Double.POSITIVE_INFINITY: lhs==0? Double.NaN: Double.NEGATIVE_INFINITY;
+		return lhs / rhs;
 	}
 	
 	/** Take modulo double numbers according to lua math, and return a {@link LuaValue} result.

@@ -156,7 +156,7 @@ public class LuaInteger extends LuaNumber {
 	public LuaValue   subFrom( int lhs )      { return LuaInteger.valueOf(lhs - (long)v); }
 	public LuaValue   mul( LuaValue rhs )        { return rhs.mul(v); }
 	public LuaValue   mul( double lhs )   { return LuaDouble.valueOf(lhs * v); }
-	public LuaValue   mul( int lhs )      { return LuaInteger.valueOf(lhs * (long)v); }
+	public LuaValue   mul( int lhs )      { return (lhs ^ v) < 0 && (lhs == 0 || v == 0)? LuaDouble.valueOf(-0.0): LuaInteger.valueOf(lhs * (long)v); }
 	public LuaValue   pow( LuaValue rhs )        { return rhs.powWith(v); }
 	public LuaValue   pow( double rhs )        { return MathLib.dpow(v,rhs); }
 	public LuaValue   pow( int rhs )        { return MathLib.dpow(v,rhs); }

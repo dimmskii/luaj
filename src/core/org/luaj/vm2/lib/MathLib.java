@@ -168,7 +168,8 @@ public class MathLib extends TwoArgFunction {
 		    if (yv.checkdouble() == 0.0d)
 				return LuaDouble.NAN;
 			if (xv.islong() && yv.islong()) {
-				return valueOf(xv.tolong() % yv.tolong());
+				long r = xv.tolong() % yv.tolong();
+				return r == 0 && xv.tolong() < 0? LuaDouble.valueOf(-0.0): valueOf(r);
 			}
 			return valueOf(xv.checkdouble() % yv.checkdouble());
 		}
