@@ -638,26 +638,21 @@ public class LuaString extends LuaValue {
 	 */
 	public static String decodeAsUtf8(byte[] bytes, int offset, int length) {
 		int i,j,n,b;
-		for ( i=offset,j=offset+length,n=0; i<j; ++n ) {
-			byte v = bytes[i++];
-			if ((v & 0xC0) == 0xC0) {
-				++i;
-				if ((v & 0xE0) == 0xE0) {
-					++i;
-					if ((v & 0xF0) == 0xF0) {
-						++i;
-					}
-				}
+		char[] chars=new char[length]; // Every char takes at least one byte; a 4-byte sequence makes two chars
+		for ( i=offset,j=offset+length,n=0; i<j; ) {
+			if ( (b=bytes[i++])>=0||i>=j )
+				chars[n++] = (char) b;
+			else if ( b<-32||i+1>=j )
+				chars[n++] = (char) (((b&0x3f) << 6) | (bytes[i++]&0x3f));
+			else if ( b<-16||i+2>=j )
+				chars[n++] = (char) (((b&0xf) << 12) | ((bytes[i++]&0x3f)<<6) | (bytes[i++]&0x3f));
+			else { // Four bytes: a code point above U+FFFF, a surrogate pair in Java
+				int uc = (((b&0x7) << 18) | ((bytes[i++]&0x3f)<<12) | ((bytes[i++]&0x3f)<<6) | (bytes[i++]&0x3f)) - 0x10000;
+				chars[n++] = (char) (0xD800 | ((uc >> 10) & 0x3ff));
+				chars[n++] = (char) (0xDC00 | (uc & 0x3ff));
 			}
 		}
-		char[] chars=new char[n];
-		for ( i=offset,j=offset+length,n=0; i<j; ) {
-			chars[n++] = (char) (
-				((b=bytes[i++])>=0||i>=j)? b:
-				(b<-32||i+1>=j)? (((b&0x3f) << 6) | (bytes[i++]&0x3f)):
-					(((b&0xf) << 12) | ((bytes[i++]&0x3f)<<6) | (bytes[i++]&0x3f)));
-		}
-		return new String(chars);
+		return new String(chars, 0, n);
 	}
 	
 	/**
@@ -672,7 +667,7 @@ public class LuaString extends LuaValue {
 		int i, b;
 		char c;
 		for (i = 0, b = 0; i < chars.length; i++) {
-			if ((c = chars[i]) < 0x80 || (c >= 0xdc00 && c < 0xe000)) {
+			if ((c = chars[i]) < 0x80) {
 				b += 1;
 			} else if (c < 0x800) {
 				b += 2;
@@ -681,7 +676,7 @@ public class LuaString extends LuaValue {
 					b += 4;
 					i++;
 				} else {
-					b += 1;
+					b += 3; // A lone surrogate: three bytes, as before, so Java strings round-trip
 				}
 			} else {
 				b += 3;
@@ -721,11 +716,11 @@ public class LuaString extends LuaValue {
 					bytes[j++] = (byte) (0x80 | ((uc >> 12) & 0x3f));
 					bytes[j++] = (byte) (0x80 | ((uc >> 6) & 0x3f));
 					bytes[j++] = (byte) (0x80 | (uc & 0x3f));
-				} else {
-					bytes[j++] = (byte) '?';
+				} else { // A lone surrogate: three bytes, as before, so Java strings round-trip
+					bytes[j++] = (byte) (0xE0 | ((c >> 12)));
+					bytes[j++] = (byte) (0x80 | ((c >> 6) & 0x3f));
+					bytes[j++] = (byte) (0x80 | (c & 0x3f));
 				}
-			} else if (c >= 0xdc00 && c < 0xe000) {
-				bytes[j++] = (byte) '?';
 			} else {
 				bytes[j++] = (byte) (0xE0 | ((c >> 12)));
 				bytes[j++] = (byte) (0x80 | ((c >> 6) & 0x3f));
@@ -780,7 +775,7 @@ public class LuaString extends LuaValue {
 		double d = scannumber( base );
 		return Double.isNaN(d)? NIL: valueOf(d);
 	}
-	
+
 	private boolean isspace(byte c) {
 		return c == ' ' || (c >= '\t' && c <= '\r');
 	}
@@ -797,8 +792,8 @@ public class LuaString extends LuaValue {
 		return c <= '9' ? c - '0' : c <= 'F' ? c + 10 - 'A' : c + 10 - 'a';
 	}
 
-	/**
-	 * Convert to a number in base 10, or base 16 if the string starts with '0x',
+	/** 
+	 * Convert to a number in base 10, or base 16 if the string starts with '0x', 
 	 * or return Double.NaN if it cannot be converted to a number.
 	 * @return double value if conversion is valid, or Double.NaN if not
 	 */
