@@ -166,7 +166,7 @@ public class MathLib extends TwoArgFunction {
 	static final class fmod extends TwoArgFunction {
 		public LuaValue call(LuaValue xv, LuaValue yv) {
 		    if (yv.checkdouble() == 0.0d)
-                return LuaDouble.NAN;
+				return LuaDouble.NAN;
 			if (xv.islong() && yv.islong()) {
 				return valueOf(xv.tolong() % yv.tolong());
 			}

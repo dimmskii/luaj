@@ -379,9 +379,9 @@ public class BaseLib extends TwoArgFunction implements ResourceFinder {
 				try {
 					return varargsOf(TRUE, args.arg1().invoke(args.subargs(3)));
 				} catch ( LuaError le ) {
-                    final LuaValue m = le.getMessageObject();
-                    return varargsOf(FALSE, t.errorfunc.call(m!=null? m: NIL));
-                } catch ( Exception e ) {
+					final LuaValue m = le.getMessageObject();
+					return varargsOf(FALSE, t.errorfunc.call(m!=null? m: NIL));
+				} catch ( Exception e ) {
 					final String m = e.getMessage();
 					return varargsOf(FALSE, valueOf(m!=null? m: e.toString()));
 				} finally {
@@ -394,7 +394,7 @@ public class BaseLib extends TwoArgFunction implements ResourceFinder {
 		}
 	}
 	
-    	// "pairs" (t) -> iter-func, t, nil
+		// "pairs" (t) -> iter-func, t, nil
 	static final class pairs extends VarArgFunction {
 		final next next;
 		pairs(next next) {

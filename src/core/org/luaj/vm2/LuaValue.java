@@ -236,7 +236,7 @@ public class LuaValue extends Varargs {
 
 	/** LuaString constant with value "__le" for use as metatag */
 	public static final LuaString LE          = valueOf("__le");
-
+	
 	/** LuaString constant with value "__pairs" for use as metatag */
 	public static final LuaString PAIRS       = valueOf("__pairs");
 
