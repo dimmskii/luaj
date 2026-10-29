@@ -50,6 +50,8 @@ public class LuaError extends RuntimeException {
 	protected Throwable cause;
 
 	private LuaValue object;
+
+	private boolean handled;
 	
 	/** Get the string message if it was supplied, or a string 
 	 * representation of the message object if that was supplied.
@@ -76,6 +78,39 @@ public class LuaError extends RuntimeException {
 		return m != null ? LuaValue.valueOf(m): null;
 	}
 	
+	/**
+	 * Whether the message object is already the result of the running xpcall's message handler,
+	 * which was called where the error occurred.
+	 */
+	public boolean isHandled() {
+		return handled;
+	}
+
+	void setHandledMessageObject(LuaValue value) {
+		this.object = value;
+		this.traceback = value.tojstring();
+		this.handled = true;
+	}
+
+	/**
+	 * Calls the thread's message handler, as xpcall does when an error occurs.
+	 * The handler is not called again for errors in it: they give "error in error handling".
+	 * @param thread the thread with the message handler
+	 * @param message the error value
+	 * @return the handler's result
+	 */
+	public static LuaValue handle(LuaThread thread, LuaValue message) {
+		final LuaValue e = thread.errorfunc;
+		thread.errorfunc = null;
+		try {
+			return e.call(message);
+		} catch ( Throwable t ) {
+			return LuaValue.valueOf("error in error handling");
+		} finally {
+			thread.errorfunc = e;
+		}
+	}
+
 	/** Construct LuaError when a program exception occurs. 
 	 * <p> 
 	 * All errors generated from lua code should throw LuaError(String) instead.

@@ -527,25 +527,24 @@ public class LuaClosure extends LuaFunction {
 	}
 
 	/**
-	 *  Run the error hook if there is one
-	 *  @param msg the message to use in error hook processing.
+	 *  Run the error hook if there is one: the message handler of the running xpcall,
+	 *  which gets the message object where the error occurred and whose result becomes the error value.
+	 *  @param le the error to process.
 	 * */
-	String errorHook(String msg, int level) {
-		if (globals == null ) return msg;
+	void errorHook(LuaError le, int level) {
+		final String msg = le.getMessage();
+		if (globals == null ) {
+			le.traceback = msg;
+			return;
+		}
 		final LuaThread r = globals.running;
-		if (r.errorfunc == null)
-			return globals.debuglib != null?
+		if (r.errorfunc == null) {
+			le.traceback = globals.debuglib != null?
 					msg + "\n" + globals.debuglib.traceback(level):
 					msg;
-		final LuaValue e = r.errorfunc;
-		r.errorfunc = null;
-		try {
-			return e.call( LuaValue.valueOf(msg) ).tojstring();
-		} catch ( Throwable t ) {
-			return "error in error handling";
-		} finally {
-			r.errorfunc = e;
+			return;
 		}
+		le.setHandledMessageObject(LuaError.handle(r, le.getMessageObject()));
 	}
 
 	private void processErrorHooks(LuaError le, Prototype p, int pc) {
@@ -567,7 +566,7 @@ public class LuaClosure extends LuaFunction {
 			}
 		}
 		le.fileline = file + ":" + (line >= 0? String.valueOf(line): "?") + ": ";
-		le.traceback = errorHook(le.getMessage(), le.level);
+		errorHook(le, le.level);
 	}
 	
 	private UpValue findupval(LuaValue[] stack, short idx, UpValue[] openups) {

@@ -220,6 +220,12 @@ public class BaseLib extends TwoArgFunction implements ResourceFinder {
 	final class pcall extends VarArgFunction {
 		public Varargs invoke(Varargs args) {
 			LuaValue func = args.checkvalue(1);
+			// errors in a pcall don't go to the message handler of an enclosing xpcall; the thread is
+			// only referenced then, so that an orphaned coroutine suspended in a pcall can still be collected
+			final LuaThread t = globals.running.errorfunc != null? globals.running: null;
+			final LuaValue preverror = t != null? t.errorfunc: null;
+			if (t != null)
+				t.errorfunc = null;
 			if (globals != null && globals.debuglib != null)
 				globals.debuglib.onCall(this);
 			try {
@@ -233,6 +239,8 @@ public class BaseLib extends TwoArgFunction implements ResourceFinder {
 			} finally {
 				if (globals != null && globals.debuglib != null)
 					globals.debuglib.onReturn();
+				if (t != null)
+					t.errorfunc = preverror;
 			}
 		}
 	}
@@ -380,10 +388,10 @@ public class BaseLib extends TwoArgFunction implements ResourceFinder {
 					return varargsOf(TRUE, args.arg1().invoke(args.subargs(3)));
 				} catch ( LuaError le ) {
 					final LuaValue m = le.getMessageObject();
-					return varargsOf(FALSE, t.errorfunc.call(m!=null? m: NIL));
+					return varargsOf(FALSE, le.isHandled()? m: LuaError.handle(t, m!=null? m: NIL));
 				} catch ( Exception e ) {
 					final String m = e.getMessage();
-					return varargsOf(FALSE, valueOf(m!=null? m: e.toString()));
+					return varargsOf(FALSE, LuaError.handle(t, valueOf(m!=null? m: e.toString())));
 				} finally {
 					if (globals != null && globals.debuglib != null)
 						globals.debuglib.onReturn();
