@@ -1,38 +1,40 @@
 # This is a fork!
 
-Compile with: `ant` or `ant jar-jse`
+This is a fork of the original [LuaJ][luaj] repository. Its main purpose is to be built by my
+[luaj-jitpack][luaj-jitpack] wrapper, so that Gradle and Maven projects can depend on it through
+[JitPack][jitpack] as `com.github.dimmskii:luaj-jitpack:<tag>`.
 
-(this will build only the project for Java Standard Edition)
+It collects fixes that contributors have published in forks and pull requests over the years.
+Only pure bug fixes, and changes that keep LuaJ's Lua 5.2.x behaviour, are taken in, along with a
+few fixes of my own. So far they come from [Rafael][rafaelqcc], [Enrico Horn][farmboy0],
+[gamax92][gamax92], [asie][asiekierka], and [yut23][yut23] and [Koushik Dutta][koush]
+([luaj/luaj#95][pr95]). The commit history credits each of them.
 
-Then test with: `./luaj`
+Every change is checked for regressions against LuaJ's full JUnit suite. Upstream already fails
+some of those tests, so their results on upstream `master` are the baseline, and a change may not
+add a single failure to it. Where Lua's behaviour was in doubt, the reference Lua 5.2.4
+interpreter and the [Lua 5.2 manual][manual] decided.
 
-(or `luaj.bat` on Windows)
+It also includes [Fabrice Ducos][fabrice-ducos]'s build changes from [luaj/luaj#113][pr113],
+so `ant jar-jse` builds with current JDKs. The J2ME sources are still in the repository, but
+`ant jar-jme` is not supported and does not compile with newer JDKs.
 
-If you need JME support (Java Micro Edition, specifically for mobiles),
-this fork is not recommended.
+Planned: more test coverage for the Lua language itself and for LuaJC, the compiler from Lua to
+Java bytecode.
 
-You can try `ant all` or `ant jar-jme`, but there is no guarantee that it
-will even compile (though that may be fixed in a future version).
-The `TODO` file can contain information about some known issues.
-
-This fork aims to fix some issues met with luaj 3.0.2, still present in 
-[luaj/luaj](https://github.com/luaj/luaj) at
-this time of writing.
-
-Building the version 3.0.2 with recent versions of ant (e.g. 1.10.11) and
-JDK (8+) seems no longer possible.
-
-The `build.xml` file of this fork has been refactored in order to separate
-jme and jse targets, and to upgrade the jse target to more recent versions
-of the JDK (namely 1.8+).
-
-It is now possible to build the jse target alone with: `ant jar-jse`
-
-The `jar-jme` target from 3.0.2 won't be supported until contributors
-experienced with JME be ready to join the project.
-
-The interpreter can be tested with `luaj` (on POSIX systems) or `luaj.bat`
-(on Windows systems). These commands can be passed arguments.
+[luaj]: https://github.com/luaj/luaj
+[luaj-jitpack]: https://github.com/dimmskii/luaj-jitpack
+[jitpack]: https://jitpack.io
+[manual]: https://www.lua.org/manual/5.2/manual.html
+[pr95]: https://github.com/luaj/luaj/pull/95
+[pr113]: https://github.com/luaj/luaj/pull/113
+[fabrice-ducos]: https://github.com/fabrice-ducos
+[rafaelqcc]: https://github.com/rafaelqcc
+[farmboy0]: https://github.com/farmboy0
+[gamax92]: https://github.com/gamax92
+[asiekierka]: https://github.com/asiekierka
+[yut23]: https://github.com/yut23
+[koush]: https://github.com/koush
 
 # Original README.md
 
