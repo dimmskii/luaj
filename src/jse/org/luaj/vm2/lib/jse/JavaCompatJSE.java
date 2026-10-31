@@ -16,6 +16,8 @@ public class JavaCompatJSE extends JavaCompat {
 	
 	// Partially improve the C Lua output mismatch situation on JSE platforms. -Dmitri Poterianski
 	public String doubleToString(double x) {
+		if (x == 0.0 || Double.isNaN(x) || Double.isInfinite(x))
+			return super.doubleToString(x);
 		// whole numbers below 10^14, and in this range the text Java writes, as plain decimal notation
 		// like %g, when it has at most 14 digits, need no rounding
 		double ax = Math.abs(x);
