@@ -51,6 +51,7 @@ public class AllTests {
 		vm.addTestSuite(MetatableTest.class);
 		vm.addTestSuite(LuaOperationsTest.class);
 		vm.addTestSuite(StringTest.class);
+		vm.addTestSuite(ToStringTest.class);
 		vm.addTestSuite(OrphanedThreadTest.class);
 		vm.addTestSuite(VarargsTest.class);
 		vm.addTestSuite(LoadOrderTest.class);
