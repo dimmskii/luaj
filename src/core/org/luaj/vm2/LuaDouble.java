@@ -244,9 +244,6 @@ public class LuaDouble extends LuaNumber {
 	public String tojstring() {
 		if ( v == 0.0 ) // never occurs on J2ME
 			return (JavaCompat.INSTANCE.doubleToRawLongBits(v)<0? "-0": "0");
-		long l = (long) v;
-		if ( l == v )
-			return Long.toString(l);
 		if ( Double.isNaN(v) )
 			return (JavaCompat.INSTANCE.doubleToRawLongBits(v)<0? JSTR_NEGNAN: JSTR_NAN);
 		if ( Double.isInfinite(v) ) 
