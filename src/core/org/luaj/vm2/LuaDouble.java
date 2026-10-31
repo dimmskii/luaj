@@ -251,7 +251,7 @@ public class LuaDouble extends LuaNumber {
 			return (JavaCompat.INSTANCE.doubleToRawLongBits(v)<0? JSTR_NEGNAN: JSTR_NAN);
 		if ( Double.isInfinite(v) ) 
 			return (v<0? JSTR_NEGINF: JSTR_POSINF);
-		return Float.toString((float)v);
+		return JavaCompat.INSTANCE.doubleToString(v); // Hand off to platform-specific format handlers -Dmitri Poterianski
 	}
 	
 	public LuaString strvalue() {

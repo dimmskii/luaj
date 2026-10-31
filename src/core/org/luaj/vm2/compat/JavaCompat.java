@@ -16,4 +16,9 @@ public class JavaCompat {
 	public long doubleToRawLongBits(double x) {
 		return Double.doubleToLongBits(x);
 	}
+	
+	// Original tail call of LuaDouble.tojstring() meant to be overridden by JSE version for "%.14g" fix -Dmitri Poterianski
+	public String doubleToString(double x) {
+		return Float.toString((float) x);
+	}
 }
