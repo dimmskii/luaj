@@ -19,8 +19,10 @@ It also includes [Fabrice Ducos][fabrice-ducos]'s build changes from [luaj/luaj#
 so `ant jar-jse` builds with current JDKs. The J2ME sources are still in the repository, but
 `ant jar-jme` is not supported and does not compile with newer JDKs.
 
-Planned: more test coverage for the Lua language itself and for LuaJC, the compiler from Lua to
+More test coverage is planned for the Lua language itself and for LuaJC, the compiler from Lua to
 Java bytecode.
+
+**Warning:** Numbers that need more than 14 significant digits can have up to a 10x tostring performance hit! Whole numbers and short decimals should still be fine. This is because this branch follows Lua 5.2's `%.14g`, as the manual specifies. This fixes a few baseline tests already failing on the upstream.
 
 [luaj]: https://github.com/luaj/luaj
 [luaj-jitpack]: https://github.com/dimmskii/luaj-jitpack
