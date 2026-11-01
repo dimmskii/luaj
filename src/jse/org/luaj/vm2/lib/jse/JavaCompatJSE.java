@@ -10,10 +10,10 @@ public class JavaCompatJSE extends JavaCompat {
 	public long doubleToRawLongBits(double x) {
 		return Double.doubleToRawLongBits(x);
 	}
-	
+
 	// Lua's number format, C's "%.14g": 14 significant digits, rounded half-even from the exact value.
 	private static final MathContext DIGITS14 = new MathContext(14, RoundingMode.HALF_EVEN);
-	
+
 	// Partially improve the C Lua output mismatch situation on JSE platforms. -Dmitri Poterianski
 	public String doubleToString(double x) {
 		if (x == 0.0 || Double.isNaN(x) || Double.isInfinite(x))
