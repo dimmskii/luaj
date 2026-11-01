@@ -19,7 +19,7 @@ public class JavaCompat {
 		return Double.doubleToLongBits(x);
 	}
 
-	// Original tail call (together with wholes shortcut) of LuaDouble.tojstring() meant to be overridden by JSE version for "%.14g" fix -Dmitri Poterianski
+	// Original code of LuaJ 3.0.2's LuaDouble.tojstring() meant to be overridden for "%.14g" fix in JSE version -Dmitri Poterianski
 	public String doubleToString(double v) {
 		if ( v == 0.0 ) // never occurs on J2ME
 			return (doubleToRawLongBits(v)<0? "-0": "0");
