@@ -242,16 +242,7 @@ public class LuaDouble extends LuaNumber {
 	public int strcmp( LuaString rhs )      { typerror("attempt to compare number with string"); return 0; }
 			
 	public String tojstring() {
-		if ( v == 0.0 ) // never occurs on J2ME
-			return (JavaCompat.INSTANCE.doubleToRawLongBits(v)<0? "-0": "0");
-		long l = (long) v;
-		if ( l == v )
-			return Long.toString(l);
-		if ( Double.isNaN(v) )
-			return (JavaCompat.INSTANCE.doubleToRawLongBits(v)<0? JSTR_NEGNAN: JSTR_NAN);
-		if ( Double.isInfinite(v) ) 
-			return (v<0? JSTR_NEGINF: JSTR_POSINF);
-		return Float.toString((float)v);
+		return JavaCompat.INSTANCE.doubleToString(v); // Hand off to platform-specific format handlers -Dmitri Poterianski
 	}
 	
 	public LuaString strvalue() {
